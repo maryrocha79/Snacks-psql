@@ -1,0 +1,27 @@
+body {
+  padding: 5%;
+  font-family: 'Open Sans', sans-serif;
+}
+
+label,
+input {
+  float: left;
+  text-align: left;
+  margin-right: 15px;
+  width: 100px;
+}
+
+form {
+  display: flex;
+}
+
+input,
+textarea,
+select,
+button {
+  width: 150px;
+  margin: 0;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}

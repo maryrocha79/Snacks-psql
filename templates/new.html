@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Add a new snack</h2>
+  <form action="{{ url_for('create') }}" method="POST">
+    <div>
+      <label for="snackName">Name:   
+      </label>
+      <input id="snackName" name="name" type="text" placeholder="Enter name."/>
+    </div>
+    <div>
+      <label for="snackKind">Kind:    
+      </label>
+      <input id="snackKind" name="kind" type="text" placeholder="What kind?"/>
+    </div>
+    <div>
+      <input type="submit" value="Add Snack!">
+    </div>
+  </form>
+  <a href="{{ url_for('index') }}">Go back</a>
+{% endblock %}

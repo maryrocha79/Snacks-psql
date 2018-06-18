@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h3>Snack info for:{{ snack.name }}</h3>
+  <ul>
+    <li>Name: {{ snack.name }}</li>
+    <li>Kind: {{ snack.kind }}</li>
+  </ul>
+  <div>
+    <a href="{{ url_for('index') }}">Go back to list of snacks</a>
+  </div>
+  <div>
+    <a href="{{ url_for('edit', id=snack.id) }}">Edit this snack</a>
+  </div>
+  <form action="{{ url_for('destroy', id=snack.id) }}?_method=DELETE" method="POST">
+    <button>Delete Snack</button>
+  </form>
+{% endblock %}
