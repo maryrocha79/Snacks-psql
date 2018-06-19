@@ -3,6 +3,10 @@ body {
   font-family: 'Open Sans', sans-serif;
 }
 
+.container {
+  padding: 5%;
+}
+
 label,
 input {
   float: left;

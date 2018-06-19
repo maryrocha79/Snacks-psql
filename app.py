@@ -1,42 +1,38 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_modus import Modus
-import psycopg2
 from flask_debugtoolbar import DebugToolbarExtension
+from flask_sqlalchemy import SQLAlchemy
 
-app = Flask(__name__)
-Modus(app)
-app.config['SECRET_KEY'] = "abc123"
-toolbar = DebugToolbarExtension(app)
 DB = "postgresql://localhost/snacks_database"
 
+app = Flask(__name__)
+app.config['SECRET_KEY'] = "abc123"
+Modus(app)
+toolbar = DebugToolbarExtension(app)
 
-class Snack:
-    count = 1
+app.config['SQLALCHEMY_DATABASE_URI'] = DB
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = True
 
-    def __init__(self, name, kind):
-        self.name = name
-        self.kind = kind
-        self.id = Snack.count
-        Snack.count += 1
+db = SQLAlchemy(app)
 
 
-apple = Snack("Apple", "fruit")
-fig_bar = Snack("Fig Bar", "Baked Good")
-tortilla_chips = Snack("Tortilla Chips", "Chips")
-snacks = [apple, fig_bar, tortilla_chips]
+class Snack(db.Model):
+    __tablename__ = "snacks"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Text)
+    kind = db.Column(db.Text)
 
-# @app.route("/snacks", methods=["GET"])
-# def index():
-#     return render_template("index.html", snacks=snacks)
+
+# create tables as needed
+db.create_all()
 
 
 @app.route("/snacks", methods=["GET"])
 def index():
-    with psycopg2.connect(DB) as conn:
-        c = conn.cursor()
-        c.execute("SELECT id,name,kind FROM snacks")
-        snacks = c.fetchall()
-        snacks = [{"id": s[0], "name": s[1], "kind": s[2]} for s in snacks]
+    """Show all snacks."""
+
+    snacks = Snack.query.all()  # [<Snack>, <Snack>]
     return render_template("index.html", snacks=snacks)
 
 
@@ -47,42 +43,57 @@ def new():
 
 @app.route("/snacks", methods=["POST"])
 def create():
-    new_snack = Snack(request.form['name'], request.form['kind'])
-    snacks.append(new_snack)
+    name = request.form['name']
+    kind = request.form['kind']
+    new_snack = Snack(name=name, kind=kind)
+
+    db.session.add(new_snack)  # makes INSERT happen
+    db.session.commit()
     return redirect(url_for("index"))
 
 
 @app.route("/snacks/<int:id>", methods=["GET"])
 def show(id):
-    try:
-        found_snack = next(snack for snack in snacks if snack.id == id)
-        return render_template("show.html", snack=found_snack)
-    except Exception as e:
-        return redirect(url_for("page_not_found"))
+    """Info on a snack."""
+
+    # try:
+    # .one raises if doesn't exist
+    # snack = Snack.query.filter(Snack.id == id).one()  # <Snack>
+    # .first, doesn't raise error if not found, returns first matching
+    snack = Snack.query.filter(Snack.id == id).first()  # <Snack>
+    if snack is None:
+        return "oops, cannot find"
+        # return redirect(url_for("page_not_found"))
+    print("debug show", snack)
+
+    return render_template("show.html", snack=snack)
 
 
 @app.route("/snacks/<int:id>", methods=["DELETE"])
 def destroy(id):
-    found_snack = next(snack for snack in snacks if snack.id == id)
-    snacks.remove(found_snack)
+    snack = Snack.query.filter(Snack.id == id).one()
+    db.session.delete(snack)
+    db.session.commit()
     return redirect(url_for("index"))
 
 
 @app.route("/snacks/<int:id>/edit", methods=["GET"])
 def edit(id):
-    try:
-        found_snack = next(snack for snack in snacks if snack.id == id)
-        return render_template("edit.html", snack=found_snack)
-    except Exception as e:
-        return redirect(url_for("page_not_found"))
+    snack = Snack.query.filter(Snack.id == id).one()
+    return render_template("edit.html", snack=snack)
 
 
 @app.route("/snacks/<int:id>", methods=["PATCH"])
 def update(id):
-    found_snack = next(snack for snack in snacks if snack.id == id)
-    found_snack.name = request.form['name']
-    found_snack.kind = request.form['kind']
-    return redirect(url_for('show', id=found_snack.id))
+    name = request.values.get('name')
+    kind = request.values.get('kind')
+
+    snack = Snack.query.filter(Snack.id == id).one()
+    snack.name = name
+    snack.kind = kind
+
+    db.session.commit()
+    return redirect(url_for("index"))
 
 
 @app.errorhandler(404)
